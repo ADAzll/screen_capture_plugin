@@ -1,0 +1,12 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="cn.shj.svi.screen_capture_plugin">
+  <!-- 截屏检测：API 34+ 使用 -->
+  <uses-permission android:name="android.permission.DETECT_SCREEN_CAPTURE" />
+  <!-- 录屏检测：API 35+ 使用 -->
+  <uses-permission android:name="android.permission.DETECT_SCREEN_RECORDING" />
+  <!-- 获取文件路径、监听录屏目录文件变化：需 READ_EXTERNAL_STORAGE -->
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+  <!-- 获取文件路径：API 33+ -->
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+  <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+</manifest>
