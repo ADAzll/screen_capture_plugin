@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screenshot_preview_mobile.dart'
     if (dart.library.html) 'screenshot_preview_web.dart' as preview;
-import 'package:permission_handler/permission_handler.dart';
 import 'package:screen_capture_plugin/screen_capture_plugin.dart';
 
 void main() => runApp(const MyApp());
@@ -42,14 +41,6 @@ class _MyAppState extends State<MyApp> {
       await _plugin.requestPhotoLibraryPermission();
     } on PlatformException {
       // 热重载后忽略
-    }
-    if (mounted) {
-      final platformVersion = await _plugin.getPlatformVersion() ?? '';
-      if (platformVersion.startsWith('Android')) {
-        await Permission.photos.request();
-        await Permission.storage.request();
-        await Permission.videos.request();
-      }
     }
     _listenCaptureEvents();
   }

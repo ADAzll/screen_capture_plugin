@@ -118,19 +118,13 @@ public class ScreenCaptureEventStreamHandler: NSObject, FlutterStreamHandler {
         isObserving = false
     }
 
-    /// 截屏通知回调：等待获取路径后再发送，避免取到旧图
+    /// 截屏通知回调：仅发送事件，不返回路径
     @objc private func onScreenshot() {
-        let timestamp = Int(Date().timeIntervalSince1970 * 1000)
-        // 异步获取截屏路径后再发送（避免取到旧图），只发一次带 path 的事件
-        fetchLatestScreenshotPath { [weak self] path in
-            var event: [String: Any] = [
-                "type": "screenshot",
-                "event": "taken",
-                "timestamp": timestamp
-            ]
-            if let path = path { event["path"] = path }
-            self?.sendEvent(event)
-        }
+        sendEvent([
+            "type": "screenshot",
+            "event": "taken",
+            "timestamp": Int(Date().timeIntervalSince1970 * 1000)
+        ])
     }
 
     /// 录屏开始/结束通知回调：start 立即发送；end 仅延迟 0.2s，若期间收到 true 则取消
@@ -180,71 +174,6 @@ public class ScreenCaptureEventStreamHandler: NSObject, FlutterStreamHandler {
     }
 
     // MARK: - 获取文件路径
-
-    /// 从相册获取最新截屏路径，仅取最近 8 秒内图片，避免取到旧图
-    /// - Parameter completion: 主线程回调，path 为 nil 表示获取失败（无权限或未找到）
-    private func fetchLatestScreenshotPath(completion: @escaping (String?) -> Void) {
-        DispatchQueue.global(qos: .userInitiated).async {
-            let status: PHAuthorizationStatus
-            if #available(iOS 14, *) {
-                status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-            } else {
-                status = PHPhotoLibrary.authorizationStatus()
-            }
-            let hasAccess: Bool
-            if #available(iOS 14, *) {
-                hasAccess = (status == .authorized || status == .limited)
-            } else {
-                hasAccess = (status == .authorized)
-            }
-            if !hasAccess {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-
-            // 等待系统保存截屏到相册（1.2s，0.5s 易取到旧图）
-            Thread.sleep(forTimeInterval: 1.2)
-
-            let fetchOptions = PHFetchOptions()
-            fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-            fetchOptions.fetchLimit = 1
-            // 只取最近 8 秒内的图片，避免取到旧截屏
-            fetchOptions.predicate = NSPredicate(format: "creationDate >= %@", Date().addingTimeInterval(-8) as NSDate)
-
-            var assets = PHAsset.fetchAssets(with: .image, options: fetchOptions)
-            if assets.firstObject == nil {
-                // 首次未找到则再等 0.6s 重试（系统保存较慢时）
-                Thread.sleep(forTimeInterval: 0.6)
-                fetchOptions.predicate = NSPredicate(format: "creationDate >= %@", Date().addingTimeInterval(-10) as NSDate)
-                assets = PHAsset.fetchAssets(with: .image, options: fetchOptions)
-            }
-            guard let asset = assets.firstObject else {
-                DispatchQueue.main.async { completion(nil) }
-                return
-            }
-
-            let options = PHImageRequestOptions()
-            options.isSynchronous = false
-            options.deliveryMode = .highQualityFormat
-            options.isNetworkAccessAllowed = true
-
-            PHImageManager.default().requestImageDataAndOrientation(for: asset, options: options) { data, _, _, _ in
-                guard let data = data else {
-                    DispatchQueue.main.async { completion(nil) }
-                    return
-                }
-                let tempDir = FileManager.default.temporaryDirectory
-                let fileName = "screenshot_\(Int(Date().timeIntervalSince1970 * 1000)).jpg"
-                let fileURL = tempDir.appendingPathComponent(fileName)
-                do {
-                    try data.write(to: fileURL)
-                    DispatchQueue.main.async { completion(fileURL.path) }
-                } catch {
-                    DispatchQueue.main.async { completion(nil) }
-                }
-            }
-        }
-    }
 
     /// 从相册获取最新录屏路径，仅取最近 10 秒内视频
     private func fetchLatestScreenRecordingPath(completion: @escaping (String?) -> Void) {
