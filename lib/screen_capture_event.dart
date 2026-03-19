@@ -1,7 +1,7 @@
 /// 截屏/录屏事件
 ///
 /// 由 iOS/Android 原生通过 EventChannel 推送。
-/// [path] 为获取到的文件路径，需相册权限，可能为 null。
+/// [path]：Android 固定为 ""；iOS 仅录屏可能有值（需相册权限）。
 class ScreenCaptureEvent {
   const ScreenCaptureEvent({
     required this.type,
@@ -25,7 +25,7 @@ class ScreenCaptureEvent {
   /// 时间戳（毫秒），录屏 end 时为检测到结束的时间
   final int timestamp;
 
-  /// 文件路径（截屏图片或录屏视频），需相册权限，获取失败时为 null
+  /// 文件路径：Android 固定为 ""；iOS 仅录屏可能有值（需相册权限），截屏不返回
   final String? path;
 
   /// 录屏视频时长（毫秒），仅 end 事件且能读取到元数据时有值
